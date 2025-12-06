@@ -1,0 +1,114 @@
+Description: CloudFormation template for nevans-tech.com resources
+
+Parameters:
+  KeyName: 
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instance
+    Type: AWS::EC2::KeyPair::KeyName
+    Default: nevans-tech-key
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.8.0/23
+      Tags:
+        - Key: Application
+          Value: nevans-tech
+        - Key: Name
+          Value: hub03
+
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 0, !GetAZs "" ]
+      CidrBlock: 10.0.8.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Application
+          Value: nevans-tech
+        - Key: Name
+          Value: subnet08
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 1, !GetAZs "" ]
+      CidrBlock: 10.0.9.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Application
+          Value: nevans-tech
+        - Key: Name
+          Value: subnet09
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags: 
+        - Key: Application
+          Value: nevans-tech
+        - Key: Name
+          Value: hub02
+
+  GatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+
+  # EC2 Launch Template which can be referenced by multiple resources
+  LaunchTemplateWeb:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData: 
+        BlockDeviceMappings:
+          - DeviceName: /dev/sdf
+            Ebs: 
+              VolumeSize: 20
+        CapacityReservationSpecification:
+          CapacityReservationPreference: open
+        DisableApiStop: false
+        DisableApiTermination: false
+        ImageId: ami-0eb9d6fc9fab44d24
+        InstanceInitiatedShutdownBehavior: terminate
+        InstanceMarketOptions:
+          MarketType: spot
+        InstanceType: t2.micro
+        KeyName: !Ref KeyName
+        Monitoring:
+          Enabled: false
+        NetworkInterfaces:
+          - AssociatePublicIpAddress: true
+            DeviceIndex: 0
+            SubnetId: !Ref PublicSubnet1
+        TagSpecifications:
+          - ResourceType: "instance"
+            Tags:
+              - Key: Application
+                Value: nevans-tech
+      LaunchTemplateName: nevans-tech-web
+      TagSpecifications: 
+        - ResourceType: "launch-template"
+          Tags:
+            - Key: Application
+              Value: nevans-tech
+      VersionDescription: Initial launch template deployment
+  
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Condition: CreateEC2Instance
+    Properties:
+      LaunchTemplate:
+        LaunchTemplateId: !Ref LaunchTemplateWeb
+        Version: !GetAtt LaunchTemplateWeb.DefaultVersionNumber
+      Tags:
+        - Key: Name
+          Value: nevans-tech-web01
+
+Outputs:
+  PuttyCommand:
+    Description: Output the Putty CLI command to SSH to the specified EC2 instance
+    Condition: CreateEC2Instance
+    Value: !Join [ "", [ "putty admin@", !GetAtt EC2Instance.PublicIp , " -i ", !Ref KeyName, ".ppk" ] ]
