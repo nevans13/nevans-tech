@@ -102,6 +102,12 @@ Resources:
             Tags:
               - Key: Application
                 Value: nevans-tech
+
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash
+            sudo apt update
+
       LaunchTemplateName: nevans-tech-web
       TagSpecifications: 
         - ResourceType: "launch-template"

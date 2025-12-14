@@ -1,2 +1,6 @@
-# Ignore keys
+# Crypto keys
 *.ppk
+
+# Node.js
+*node_modules*
+*package-lock.json
