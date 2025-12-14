@@ -1,10 +1,24 @@
 Description: CloudFormation template for nevans-tech.com resources
 
 Parameters:
+  ComputeResources:
+    Description: Specify which billable compute resources to create as part of this template
+    Default: None
+    Type: String
+    AllowedValues:
+      - None
+      - EC2 Only
+      - All
+    ConstraintDescription: Must specify one of the allowed values
+
   KeyName: 
     Description: Name of an existing EC2 KeyPair to enable SSH access to the instance
     Type: AWS::EC2::KeyPair::KeyName
     Default: nevans-tech-key
+
+Conditions:
+  CreateEC2Instances: !Or [!Equals [!Ref ComputeResources, "EC2 Only"], !Equals [!Ref ComputeResources, "All"]]
+  CreateAllComputeResources: !Equals [!Ref ComputeResources, "All"]
 
 Resources:
   VPC:
@@ -21,7 +35,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      AvailabilityZone: !Select [ 0, !GetAZs "" ]
+      AvailabilityZone: !Select [0, !GetAZs ""]
       CidrBlock: 10.0.8.0/24
       MapPublicIpOnLaunch: true
       Tags:
@@ -34,7 +48,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      AvailabilityZone: !Select [ 1, !GetAZs "" ]
+      AvailabilityZone: !Select [1, !GetAZs ""]
       CidrBlock: 10.0.9.0/24
       MapPublicIpOnLaunch: true
       Tags:
@@ -96,19 +110,37 @@ Resources:
               Value: nevans-tech
       VersionDescription: Initial launch template deployment
   
-  EC2Instance:
+  # Kubernetes node 1
+  EC2InstanceNode1:
     Type: AWS::EC2::Instance
-    Condition: CreateEC2Instance
+    Condition: CreateEC2Instances
     Properties:
       LaunchTemplate:
         LaunchTemplateId: !Ref LaunchTemplateWeb
         Version: !GetAtt LaunchTemplateWeb.DefaultVersionNumber
       Tags:
         - Key: Name
-          Value: nevans-tech-web01
+          Value: nevans-tech-node01
+
+# Kubernetes node 2
+  EC2InstanceNode2:
+    Type: AWS::EC2::Instance
+    Condition: CreateEC2Instances
+    Properties:
+      LaunchTemplate:
+        LaunchTemplateId: !Ref LaunchTemplateWeb
+        Version: !GetAtt LaunchTemplateWeb.DefaultVersionNumber
+      Tags:
+        - Key: Name
+          Value: nevans-tech-node02
 
 Outputs:
-  PuttyCommand:
+  PuttyCommandNode1:
     Description: Output the Putty CLI command to SSH to the specified EC2 instance
-    Condition: CreateEC2Instance
-    Value: !Join [ "", [ "putty admin@", !GetAtt EC2Instance.PublicIp , " -i ", !Ref KeyName, ".ppk" ] ]
+    Condition: CreateEC2Instances
+    Value: !Join ["", ["putty admin@", !GetAtt EC2InstanceNode1.PublicIp , " -i ", !Ref KeyName, ".ppk"]]
+
+  PuttyCommandNode2:
+    Description: Output the Putty CLI command to SSH to the specified EC2 instance
+    Condition: CreateEC2Instances
+    Value: !Join ["", ["putty admin@", !GetAtt EC2InstanceNode2.PublicIp , " -i ", !Ref KeyName, ".ppk"]]
