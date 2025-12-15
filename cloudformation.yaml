@@ -71,6 +71,15 @@ Resources:
     Properties:
       InternetGatewayId: !Ref InternetGateway
       VpcId: !Ref VPC
+  
+  ECRRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      EmptyOnDelete: true
+      RepositoryName: "nevans-tech/web"
+      Tags: 
+        - Key: Application
+          Value: nevans-tech
 
   # EC2 Launch Template which can be referenced by multiple resources
   LaunchTemplateWeb:
@@ -125,6 +134,8 @@ Resources:
         LaunchTemplateId: !Ref LaunchTemplateWeb
         Version: !GetAtt LaunchTemplateWeb.DefaultVersionNumber
       Tags:
+        - Key: Application
+          Value: nevans-tech
         - Key: Name
           Value: nevans-tech-node01
 
@@ -137,6 +148,8 @@ Resources:
         LaunchTemplateId: !Ref LaunchTemplateWeb
         Version: !GetAtt LaunchTemplateWeb.DefaultVersionNumber
       Tags:
+        - Key: Application
+          Value: nevans-tech
         - Key: Name
           Value: nevans-tech-node02
 
