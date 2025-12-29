@@ -7,6 +7,7 @@ Reference: https://docs.aws.amazon.com/AmazonS3/latest/userguide/EnableWebsiteHo
 2. Add the bucket_policy.json to the Bucket Policy under Permissions
 3. Enable Static Website Hosting in the S3 console
 4. Upload the content in the static directory to the root of the bucket
+5. Configure masked redirects for root "@" and "www" to the bucket FQDN
 
 
 
